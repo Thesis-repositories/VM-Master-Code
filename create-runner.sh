@@ -1,8 +1,7 @@
 #!/bin/bash
 
-source /home/alan/code/.env
+source /home/master/code/.env
 
-ORG=$1
 ORG_URL="https://github.com/${ORG}"
 
 #generate a jwt

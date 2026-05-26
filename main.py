@@ -44,16 +44,16 @@ def tryProxmoxApi():
 
 @app.get("/config")
 async def generateRegistrationToken():
-    token = subprocess.run(["bash", "./create-runner.sh", os.getenv("org")], capture_output=True, text=True)
+    token = subprocess.run(["bash", "./create-runner.sh"], capture_output=True, text=True)
     return {
-        "token":token.stdout,
-        "org": os.getenv("org")
+        "token": token.stdout.strip(),
+        "org_url": "https://github.com/" + os.getenv("ORG")
     }
 
 @app.post("/create-runner")
 async def createNewVM():
     async with lock:
-        vmid = 102
+        vmid = 104
         newvmid = proxmox.cluster().nextid().get()
         node = "andromeda"
 
@@ -79,7 +79,7 @@ async def createNewVM():
             )
             proxmox.nodes(node).lxc(newvmid).status().start().post()
             found = setOccupied(ip, newvmid, node)
-            message = "LXC created; ip allocated: " + found
+            message = "LXC created; ip allocated: " + str(found)
 
         return {"message": message}
 
@@ -90,7 +90,7 @@ async def destroyRunner(request: Request):
         ip = request.client.host
         vmid, node, found = setAddressesFreeAndUpload(ip)
         if found:
-            upid = proxmox.nodes(node).lxc(vmid).status.stop().post()
+            upid = proxmox.nodes(node).lxc(vmid).status().stop().post()
             try:
                 await waitTask(node, upid)
             except TimeoutError as e:
@@ -103,7 +103,7 @@ async def destroyRunner(request: Request):
             message = "Received request from: " + ip + " but it has not been found"
         return {"message": message}
 
-def getAddresses(vmid, node):
+def getAddresses():
     with open("addresses.json", "r") as f:
         data = json.load(f)
         
